@@ -214,6 +214,12 @@ function formateMinutes() {
     }
 }
 
+const formatHorasPorDia = computed(()=>{
+    const h = CONFIG.value.horas_por_dia.replace(/\D/g, '');
+    CONFIG.value.horas_por_dia = `${h}`;
+    return CONFIG.value.horas_por_dia;
+});
+
 </script>
 
 <template>
@@ -234,9 +240,16 @@ function formateMinutes() {
                             </v-row>
                             <v-row dense class="mx-auto">
                                 <v-col cols="11" class="text-center mx-auto d-flex align-center">
-                                    <v-text-field v-model="CONFIG.horas_por_dia" :on-update:model-value="formateMinutes()" density="comfortable"
+                                    <v-text-field v-model="CONFIG.horas_por_dia" :model-value="formatHorasPorDia" :on-update:model-value="formateMinutes()" density="comfortable"
                                         variant="outlined" color="green" maxlength="5" label="Horas por dia"
-                                        prepend-inner-icon="mdi-clock-outline" hide-details></v-text-field>
+                                        prepend-inner-icon="mdi-clock-outline" hide-details>
+                                        <template v-slot:append-inner>
+                                            <v-icon icon="mdi-help-box" style="cursor: pointer;"></v-icon>
+                                            <v-tooltip location="right top" activator="parent" style="margin-left: 1rem !important;">
+                                                Informe a quantidade de <br> horas trabalhadas por dia, <br> exemplo: 8
+                                            </v-tooltip>
+                                        </template>
+                                    </v-text-field>
                                 </v-col>
                                 <v-col cols="11" class="mx-auto my-2">
                                     <v-divider></v-divider>
@@ -247,12 +260,13 @@ function formateMinutes() {
                                     <v-text-field density="comfortable" variant="outlined" color="green"
                                         v-model="inter.entrada" :model-value="inter.formatedEntrada" maxlength="5"
                                         label="Entrada" prepend-inner-icon="mdi-login" hide-details
+                                        placeholder="23:59"
                                         :disabled="disabledEntrada || (index > 0 && CONFIG.intervalos[index - 1].saidaTime === 0) || (index < CONFIG.intervalos.length - 1 && inter.saidaTime > 0) ? true : false"></v-text-field>
                                 </v-col>
                                 <v-col cols="5" class="d-flex align-center">
                                     <v-text-field density="comfortable" variant="outlined" color="green"
                                         v-model="inter.saida" :model-value="inter.formatedSaida" maxlength="5"
-                                        label="Saída" prepend-inner-icon="mdi-logout"
+                                        label="Saída" prepend-inner-icon="mdi-logout" placeholder="23:59"
                                         :disabled="index === CONFIG.intervalos.length - 1 || disabledSaida || inter.entradaTime === 0 || CONFIG.intervalos[index + 1].entradaTime > 0 ? true : false"
                                         hide-details></v-text-field>
                                 </v-col>
@@ -289,7 +303,7 @@ function formateMinutes() {
                             </div>
                         </v-col>
                     </v-row>
-                    
+
                 </v-col>
 
                 <v-col cols="2"></v-col>
