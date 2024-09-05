@@ -8,6 +8,7 @@ const store = useCounterStore();
 
 const CONFIG = ref({
     horas_por_dia: "",
+    min_por_dia: 0,
     intervalos: [
         {
             id: "01",
@@ -43,7 +44,10 @@ onBeforeMount(() => {
 function useFormattedTime(id, type) {
     return computed(() => {
         let TIME = `${CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`]}`.replace(/\D/g, '');
-        CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = TIME.replace(/(\d{2})(\d{2})(\d{2})/, '$1:$2:$3');
+        if (TIME.length===4) {
+            
+        }
+        CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = TIME.replace(/(\d{2})(\d)/, '$1:$2');
 
         let [hora, min, seg] = CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`].split(":");
 
@@ -56,14 +60,14 @@ function useFormattedTime(id, type) {
                 }
             }
         }
-
+        
         if (min !== undefined) {
             if (min.length === 1) {
                 min = min.replace(/[^0-5]/g, '');
             }
         }
-
-        CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = `${hora !== undefined ? hora : ""}${min !== undefined ? min : ""}`.replace(/(\d{2})(\d)/, '$1:$2');
+        
+        CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = `${hora !== undefined ? hora : ""}${min !== undefined && min!=="" ? (min.length>1 ? min[0]+min[1] : min[0]) : ""}`.replace(/(\d{2})(\d)/, '$1:$2');
 
         if (CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`].length === 5) {
             const timeArray = CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`].split(":");
@@ -85,7 +89,7 @@ function useCountInterval(id) {
             const entrada = new Date(new Date().setHours(parseInt(entradaArray[0]), parseInt(entradaArray[1]), 0, 0));
             const saida = new Date(new Date().setHours(parseInt(saidaArray[0]), parseInt(saidaArray[1]), 0, 0));
 
-            return DATE.getDiff(saida, entrada) / 1000 / 60 / 60;
+            return (DATE.getDiff(saida, entrada) / 1000 / 60);
         }
 
         return 0;
@@ -101,52 +105,56 @@ function Jornada() {
 
     if (intervalosFiltrado.length > 0) {
 
-        let horasConcluidas = 0;
+        let minConcluidos = 0;
 
         if (intervalosFiltrado[intervalosFiltrado.length - 1].total_intervalo === 0 || (intervalosFiltrado[intervalosFiltrado.length - 1].total_intervalo > 0 && intervalosFiltrado[intervalosFiltrado.length - 1].saidaTime > new Date().getTime())) {
             const entradaArray = intervalosFiltrado[intervalosFiltrado.length - 1].entrada.split(":");
-            horasConcluidas = DATE.getDiff(new Date(new Date().setSeconds(0, 0)), new Date(new Date().setHours(parseInt(entradaArray[0]), parseInt(entradaArray[1]), 0, 0))) / 1000 / 60 / 60;
+            minConcluidos = DATE.getDiff(new Date(new Date().setSeconds(0, 0)), new Date(new Date().setHours(parseInt(entradaArray[0]), parseInt(entradaArray[1]), 0, 0))) / 1000 / 60;
         }
 
         if (intervalosFiltrado.filter(int => int.total_intervalo > 0).length > 0) {
             intervalosFiltrado.filter(int => int.total_intervalo > 0).forEach(i => {
                 if (i.saidaTime <= new Date().getTime()) {
-                    horasConcluidas += i.total_intervalo;
+                    minConcluidos += i.total_intervalo;
                 }
             });
         }
 
-        const horasFaltante = parseInt(CONFIG.value.horas_por_dia) - horasConcluidas;
+        const minFaltante = parseInt(CONFIG.value.min_por_dia) - minConcluidos;
 
-        const hora = `${parseInt(horasFaltante) < 10 ? '0' : ''}${parseInt(horasFaltante)}`;
-        const m = 60 * (horasFaltante - parseInt(horasFaltante))
+        const hora = `${parseInt(minFaltante/60) < 10 ? '0' : ''}${parseInt(minFaltante/60)}`;
+        // const m = 60 * (horasFaltante - parseInt(horasFaltante))
+        const m = minFaltante % 60
         const minutos = `${m < 10 ? '0' : ''}${Math.round(m)}`;
 
         return {
-            jornada: horasConcluidas,
-            restante: horasConcluidas < parseInt(CONFIG.value.horas_por_dia) ? `${hora}:${minutos}` : "00:00"
+            jornada: minConcluidos,
+            restante: minConcluidos < parseInt(CONFIG.value.min_por_dia) ? `${hora}:${minutos}` : "00:00"
         };
     }
 
     return {
         jornada: 0,
-        restante: CONFIG.value.horas_por_dia === "" ? "00:00" : `${parseInt(CONFIG.value.horas_por_dia) < 10 ? '0' : ''}${parseInt(CONFIG.value.horas_por_dia)}:00`
+        restante: CONFIG.value.horas_por_dia === "" && !parseInt(CONFIG.value.horas_por_dia) ? "00:00" : `${parseInt(CONFIG.value.horas_por_dia) < 10 ? '0' : ''}${parseInt(CONFIG.value.horas_por_dia)}:00`
     };
 }
 
 function Hora() {
 
     const intervalos = CONFIG.value.intervalos;
-    let horasFaltante = parseInt(CONFIG.value.horas_por_dia);
+    let minFaltante = parseInt(CONFIG.value.min_por_dia);
 
     if (intervalos[intervalos.length - 1].entrada.length === 5) {
         const entradaArray = intervalos[intervalos.length - 1].entrada.split(":");
 
-        CONFIG.value.intervalos.filter(inter => inter.total_intervalo > 0 && inter.saidaTime <= new Date().getTime()).forEach(element => {
-            horasFaltante -= element.total_intervalo;
+        CONFIG.value.intervalos.filter(inter => inter.total_intervalo > 0).forEach(element => {
+            if (element.saidaTime <= new Date().getTime()) {
+                minFaltante -= element.total_intervalo;
+            }
         });
 
-        const horaFinal = DATE.addHours(new Date().setHours(parseInt(entradaArray[0]), parseInt(entradaArray[1]), 0, 0), horasFaltante);
+
+        const horaFinal = DATE.addMinutes(new Date(new Date().setHours(parseInt(entradaArray[0]), parseInt(entradaArray[1]), 0, 0)), minFaltante);
 
         return new Date(horaFinal).toLocaleTimeString();
     }
@@ -156,7 +164,7 @@ function Hora() {
 
 function startJornada() {
     const { jornada, restante } = Jornada();
-    countJornada.value = jornada / (parseInt(CONFIG.value.horas_por_dia) / 100);;
+    countJornada.value = jornada / (parseInt(CONFIG.value.min_por_dia) / 100);;
     countHorasRestante.value = restante;
     CONFIG.value.intervalos[CONFIG.value.intervalos.length - 1].saida = Hora();
 }
@@ -198,6 +206,14 @@ const disabledSaida = computed(() => {
     return false
 });
 
+function formateMinutes() {
+    if (CONFIG.value.horas_por_dia!==""&&parseInt(CONFIG.value.horas_por_dia)) {
+        CONFIG.value.min_por_dia = parseInt(CONFIG.value.horas_por_dia) * 60;
+    } else {
+        CONFIG.value.min_por_dia = 0;
+    }
+}
+
 </script>
 
 <template>
@@ -218,7 +234,7 @@ const disabledSaida = computed(() => {
                             </v-row>
                             <v-row dense class="mx-auto">
                                 <v-col cols="11" class="text-center mx-auto d-flex align-center">
-                                    <v-text-field v-model="CONFIG.horas_por_dia" density="comfortable"
+                                    <v-text-field v-model="CONFIG.horas_por_dia" :on-update:model-value="formateMinutes()" density="comfortable"
                                         variant="outlined" color="green" maxlength="5" label="Horas por dia"
                                         prepend-inner-icon="mdi-clock-outline" hide-details></v-text-field>
                                 </v-col>
@@ -273,6 +289,7 @@ const disabledSaida = computed(() => {
                             </div>
                         </v-col>
                     </v-row>
+                    
                 </v-col>
 
                 <v-col cols="2"></v-col>
