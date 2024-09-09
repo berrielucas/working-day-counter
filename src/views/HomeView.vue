@@ -101,7 +101,7 @@ const countJornada = ref(0);
 const countHorasRestante = ref("")
 
 function Jornada() {
-    const intervalosFiltrado = CONFIG.value.intervalos.filter(inter => inter.entrada.length === 5);
+    const intervalosFiltrado = CONFIG.value.intervalos.filter(inter => inter.entrada.length === 5 && inter.entradaTime <= new Date().getTime());
 
     if (intervalosFiltrado.length > 0) {
 
@@ -148,13 +148,17 @@ function Hora() {
         const entradaArray = intervalos[intervalos.length - 1].entrada.split(":");
 
         CONFIG.value.intervalos.filter(inter => inter.total_intervalo > 0).forEach(element => {
-            if (element.saidaTime <= new Date().getTime()) {
+            // if (element.saidaTime <= new Date().getTime()) {
                 minFaltante -= element.total_intervalo;
-            }
+            // }
         });
 
 
         const horaFinal = DATE.addMinutes(new Date(new Date().setHours(parseInt(entradaArray[0]), parseInt(entradaArray[1]), 0, 0)), minFaltante);
+
+        if (minFaltante <= 0) {
+            return intervalos[intervalos.length - 1].saida;
+        }
 
         return new Date(horaFinal).toLocaleTimeString();
     }
