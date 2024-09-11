@@ -1,10 +1,11 @@
 <script setup>
 import { useCounterStore } from '@/stores/counter';
-import { useDate } from 'vuetify/lib/framework.mjs';
+import { useDate, useDisplay } from 'vuetify/lib/framework.mjs';
 import { ref, computed, onBeforeMount } from 'vue';
 
 const DATE = useDate();
 const store = useCounterStore();
+const { mobile } = useDisplay();
 
 const CONFIG = ref({
     horas_por_dia: "",
@@ -44,8 +45,8 @@ onBeforeMount(() => {
 function useFormattedTime(id, type) {
     return computed(() => {
         let TIME = `${CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`]}`.replace(/\D/g, '');
-        if (TIME.length===4) {
-            
+        if (TIME.length === 4) {
+
         }
         CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = TIME.replace(/(\d{2})(\d)/, '$1:$2');
 
@@ -60,14 +61,14 @@ function useFormattedTime(id, type) {
                 }
             }
         }
-        
+
         if (min !== undefined) {
             if (min.length === 1) {
                 min = min.replace(/[^0-5]/g, '');
             }
         }
-        
-        CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = `${hora !== undefined ? hora : ""}${min !== undefined && min!=="" ? (min.length>1 ? min[0]+min[1] : min[0]) : ""}`.replace(/(\d{2})(\d)/, '$1:$2');
+
+        CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`] = `${hora !== undefined ? hora : ""}${min !== undefined && min !== "" ? (min.length > 1 ? min[0] + min[1] : min[0]) : ""}`.replace(/(\d{2})(\d)/, '$1:$2');
 
         if (CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`].length === 5) {
             const timeArray = CONFIG.value.intervalos.filter(i => i.id === id)[0][`${type}`].split(":");
@@ -122,7 +123,7 @@ function Jornada() {
 
         const minFaltante = parseInt(CONFIG.value.min_por_dia) - minConcluidos;
 
-        const hora = `${parseInt(minFaltante/60) < 10 ? '0' : ''}${parseInt(minFaltante/60)}`;
+        const hora = `${parseInt(minFaltante / 60) < 10 ? '0' : ''}${parseInt(minFaltante / 60)}`;
         // const m = 60 * (horasFaltante - parseInt(horasFaltante))
         const m = minFaltante % 60
         const minutos = `${m < 10 ? '0' : ''}${Math.round(m)}`;
@@ -149,7 +150,7 @@ function Hora() {
 
         CONFIG.value.intervalos.filter(inter => inter.total_intervalo > 0).forEach(element => {
             // if (element.saidaTime <= new Date().getTime()) {
-                minFaltante -= element.total_intervalo;
+            minFaltante -= element.total_intervalo;
             // }
         });
 
@@ -211,14 +212,14 @@ const disabledSaida = computed(() => {
 });
 
 function formateMinutes() {
-    if (CONFIG.value.horas_por_dia!==""&&parseInt(CONFIG.value.horas_por_dia)) {
+    if (CONFIG.value.horas_por_dia !== "" && parseInt(CONFIG.value.horas_por_dia)) {
         CONFIG.value.min_por_dia = parseInt(CONFIG.value.horas_por_dia) * 60;
     } else {
         CONFIG.value.min_por_dia = 0;
     }
 }
 
-const formatHorasPorDia = computed(()=>{
+const formatHorasPorDia = computed(() => {
     const h = CONFIG.value.horas_por_dia.replace(/\D/g, '');
     CONFIG.value.horas_por_dia = `${h}`;
     return CONFIG.value.horas_por_dia;
@@ -228,66 +229,77 @@ const formatHorasPorDia = computed(()=>{
 
 <template>
     <v-app :theme="store.theme">
-        <v-main class="pa-4 px-15 border">
-            <v-row dense style="" class="pt-5 pb-16 mb-16 px-10">
+        <v-main class="border" :class="!mobile ? 'pa-4 px-15' : 'px-3 pb-4'">
+            <v-row dense style="" class="mb-16 pb-16" :class="!mobile ? 'pt-5 px-10' : 'pt-3'">
 
-                <v-col cols="2"></v-col>
+                <v-col v-if="!mobile" cols="2"></v-col>
 
                 <!-- Main -->
-                <v-col cols="7" class="mx-auto">
+                <v-col :cols="!mobile ? '7' : '12'" :class="!mobile ? 'mx-auto' : ''">
                     <v-card>
                         <v-card-text class="my-3">
                             <v-row dense class="mx-auto">
-                                <v-col cols="11" class="text-center mb-6 mx-auto">
+                                <v-col :cols="!mobile ? '11' : '12'" class="text-center mb-6 mx-auto">
                                     <h1>Ponto +/-</h1>
                                 </v-col>
                             </v-row>
                             <v-row dense class="mx-auto">
-                                <v-col cols="11" class="text-center mx-auto d-flex align-center">
-                                    <v-text-field v-model="CONFIG.horas_por_dia" :model-value="formatHorasPorDia" :on-update:model-value="formateMinutes()" density="comfortable"
+                                <v-col :cols="!mobile ? '11' : '12'" class="text-center mx-auto d-flex align-center">
+                                    <v-text-field v-model="CONFIG.horas_por_dia" :model-value="formatHorasPorDia"
+                                        :on-update:model-value="formateMinutes()" density="comfortable"
                                         variant="outlined" color="green" maxlength="5" label="Horas por dia"
                                         prepend-inner-icon="mdi-clock-outline" hide-details>
                                         <template v-slot:append-inner>
                                             <v-icon icon="mdi-help-box" style="cursor: pointer;"></v-icon>
-                                            <v-tooltip location="right top" activator="parent" style="margin-left: 1rem !important;">
+                                            <v-tooltip location="right top" activator="parent"
+                                                style="margin-left: 1rem !important;">
                                                 Informe a quantidade de <br> horas trabalhadas por dia, <br> exemplo: 8
                                             </v-tooltip>
                                         </template>
                                     </v-text-field>
                                 </v-col>
-                                <v-col cols="11" class="mx-auto my-2">
+                                <v-col :cols="!mobile ? '11' : '12'" class="mx-auto my-2">
                                     <v-divider></v-divider>
                                 </v-col>
                             </v-row>
                             <v-row v-for="inter, index in CONFIG.intervalos" :key="inter.id" dense class="mx-auto">
-                                <v-col cols="5" class="ml-auto d-flex align-center">
+                                <v-col :cols="!mobile ? '5' : '12'" class="ml-auto d-flex align-center"
+                                    :class="!mobile ? '' : 'mb-2'">
                                     <v-text-field density="comfortable" variant="outlined" color="green"
                                         v-model="inter.entrada" :model-value="inter.formatedEntrada" maxlength="5"
-                                        label="Entrada" prepend-inner-icon="mdi-login" hide-details
-                                        placeholder="23:59"
+                                        label="Entrada" prepend-inner-icon="mdi-login" hide-details placeholder="23:59"
                                         :disabled="disabledEntrada || (index > 0 && CONFIG.intervalos[index - 1].saidaTime === 0) || (index < CONFIG.intervalos.length - 1 && inter.saidaTime > 0) ? true : false"></v-text-field>
                                 </v-col>
-                                <v-col cols="5" class="d-flex align-center">
+                                <v-col :cols="!mobile ? '5' : '12'" class="d-flex align-center"
+                                    :class="!mobile ? '' : 'mb-2'">
                                     <v-text-field density="comfortable" variant="outlined" color="green"
                                         v-model="inter.saida" :model-value="inter.formatedSaida" maxlength="5"
                                         label="Saída" prepend-inner-icon="mdi-logout" placeholder="23:59"
                                         :disabled="index === CONFIG.intervalos.length - 1 || disabledSaida || inter.entradaTime === 0 || CONFIG.intervalos[index + 1].entradaTime > 0 ? true : false"
                                         hide-details></v-text-field>
                                 </v-col>
-                                <v-col cols="1" class="text-center mr-auto d-flex align-center">
-                                    <v-btn @click="removeInterval(inter.id)" class="mx-auto" icon="mdi-trash-can"
-                                        color="red" size="46" variant="tonal" style="border-radius: 5px;"
+                                <v-col :cols="!mobile ? '1' : '12'" class="text-center mr-auto d-flex align-center">
+                                    <v-btn v-if="!mobile" @click="removeInterval(inter.id)" class="mx-auto"
+                                        icon="mdi-trash-can" color="red" size="46" variant="tonal"
+                                        style="border-radius: 5px;"
                                         :disabled="CONFIG.intervalos.length > 2 ? false : true"></v-btn>
+                                    <v-btn v-else @click="removeInterval(inter.id)" class="w-100 text-none" color="red"
+                                        variant="tonal" text="Excluir Intervalo"
+                                        :disabled="CONFIG.intervalos.length > 2 ? false : true">
+                                        <template v-slot:prepend>
+                                            <v-icon>mdi-trash-can</v-icon>
+                                        </template>
+                                    </v-btn>
                                 </v-col>
-                                <v-col v-if="index < CONFIG.intervalos.length - 1" cols="11"
+                                <v-col v-if="index < CONFIG.intervalos.length - 1" :cols="!mobile ? '11' : '12'"
                                     class="text-center mx-auto my-2">
                                     <v-divider></v-divider>
                                 </v-col>
                             </v-row>
                             <v-row dense class="mx-auto mt-5">
-                                <v-col cols="11" class="text-center mx-auto">
-                                    <v-btn @click="addInterval()" class="w-50 mx-auto" color="green" variant="tonal"
-                                        text="Adicionar Intervalo">
+                                <v-col :cols="!mobile ? '11' : '12'" class="text-center mx-auto">
+                                    <v-btn @click="addInterval()" :class="!mobile ? 'w-50 mx-auto' : 'w-100'"
+                                        color="green" variant="tonal" text="Adicionar Intervalo">
                                         <template v-slot:prepend>
                                             <v-icon>mdi-plus</v-icon>
                                         </template>
@@ -310,7 +322,7 @@ const formatHorasPorDia = computed(()=>{
 
                 </v-col>
 
-                <v-col cols="2"></v-col>
+                <v-col v-if="!mobile" cols="2"></v-col>
 
             </v-row>
 
